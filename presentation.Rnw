@@ -1,0 +1,532 @@
+\documentclass{beamer}
+\usetheme{Singapore}
+
+\usepackage{amsmath}
+\usepackage{natbib}
+
+
+
+\title{Sample Size Estimation}
+\author{Lyron Winderbaum}
+
+
+<<set_default_chunk_options,cache=FALSE,echo=FALSE>>=
+library(knitr)
+opts_chunk$set(echo=FALSE,
+               warning=TRUE,
+               error=TRUE,
+               message=TRUE,
+               include=TRUE,
+               cache=TRUE,
+               fig.align="center"
+               )
+# knit_hooks$set(inline = function(x) {
+#   prettyNum(x, big.mark=",")
+# })
+opts_knit$set(self.contained=FALSE,
+              concordance=TRUE)
+@
+
+
+
+<<plotting>>=
+library(ggplot2)
+library(reshape2)
+
+# Default plotting commands for the point estimation
+pest_plot = function(df){
+  p = ggplot(df, aes(x = n, y = Probability))
+  p = p + geom_point(alpha=0.4)
+  p = p + geom_hline(aes(yintercept=0.9))
+  p = p + xlab("Sample Size")
+  p = p + ylab("Probability that Point Estimate is > 0.98")
+  p
+}
+
+# Default plotting commands for the Lower Bound of 95% CI
+conf_plot = function(df){
+  p = ggplot(df, aes(x = n, y = Probability))
+  p = p + geom_point(alpha=0.4)
+  p = p + geom_hline(aes(yintercept=0.9))
+  p = p + xlab("Sample Size")
+  p = p + ylab("Probability that Lower Bound is > 0.96")
+  p
+}
+
+@
+
+<<analysis>>= 
+
+# Calculate Point Estimates, puts results in melted data.frame df.m
+source('point_estimates.R')
+# re-jig variable naming to avoid over-writing
+df.pest = df.m
+df.pest.low = rbind(df.mle.low, df.jeffreys.low, df.laplace.low, df.wilson.low, df.bayes.low)
+df.pest.high = rbind(df.jeffreys.high, df.laplace.high, df.wilson.high, df.bayes.high)
+source('confidence_intervals.R')
+# re-jig variable naming for consistency, TODO: Reformat to memory handle more sensibly.
+df.conf = df.m
+df.conf.low = rbind(df.exact.low, df.wilson.low, df.cwilson.low, df.agresti.low, df.wald.low, df.adjwald.low, df.jeffreys.low)
+df.conf.high = rbind(df.exact.high, df.wilson.high, df.cwilson.high, df.agresti.high, df.wald.high, df.adjwald.high, df.jeffreys.high)
+rm('df.m')
+rm('df')
+@
+
+
+<<summary_functions>>=
+# For finding the minimum n to satisfy various criteria:
+
+# smallest n to satisfy the criteria
+min_n = function(df, est){
+  return(min(subset(df, Estimate == est & Probability > 0.9)$n))
+}
+
+# interpolated n along the lower bound line on the n vs probability of satisfying criteria graph
+interp_n = function(df.low, est){
+  df.sub = subset(df.low, Estimate == est)
+  df.sub = df.sub[order(df.sub$n), ]
+  i = which(df.sub$Probability > 0.9)[1]
+  u = df.sub[i, ]
+  l = df.sub[i - 1, ]
+  t = (0.9 - l$Probability)/(u$Probability - l$Probability)
+  return(ceiling(l$n + (u$n - l$n)*t))
+}
+
+# first "high" n on a tack that does not drop below 0.9,
+# equivalent to minimum n such that all n greater than it satisfy the criteria.
+max_n = function(df.low, est){
+  df.sub = subset(df.low, Estimate == est)
+  df.sub = df.sub[order(df.sub$n), ]
+  i = which(df.sub$Probability > 0.9)[1]
+  return(df.sub[i-1, 'n'] + 1)
+}
+@
+
+
+
+\begin{document}
+
+
+
+\section{Intro}
+
+\maketitle
+
+\begin{frame}
+  \frametitle{The Question}
+  
+  Diagnostic technology can distinguish between diseased (positive) and non-diseased (negative) blood samples.
+  
+  This technology has a sensitivity of at least 99\% and a specificity of at least 87\%.
+  
+  What is the minimum sample size needed to, with 90\% probability, obtain both:
+  \begin{itemize}
+    \item A point estimate for the sensitivity above 98\%, and
+    \item The lower bound of a 95\% confidence interval above 96\%.
+  \end{itemize}
+  
+\end{frame}
+
+
+
+\section{Point Estimate}
+
+\begin{frame}
+  \frametitle{Notation}
+  
+  \begin{itemize}
+    \item $n$: sample size
+    \item $x$: number of true positives observed.
+    \item $\hat{p}$: point estimate for sensitivity.
+  \end{itemize}
+  
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Approach}
+
+The way I approached this was to:
+\begin{itemize}
+  \item Choose a method for calculating the point-estimate $\hat{p}$.
+  \item For all $n$ between 1 and 1000:
+  \begin{itemize}
+    \item Calculate $\hat{p}$ for every possible outcome $x$ between $0$ and $n$.
+    \item For those that produce $\hat{p} > 0.98$, calculate and sum their binomial probabilities (assuming the true sensitivity is $0.99$).
+  \end{itemize}
+  \item Plot $n$ against the probability of satisfying the criteria $\hat{p} > 0.98$ to find the point at which the sample size is large enough that this probability is $> 90\%$. 
+\end{itemize}
+
+\end{frame}
+
+% \begin{frame}
+% \frametitle{MLE}
+% <<plot_MLE_1, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "MLE"))
+% print(p)
+% @
+% \end{frame}
+% 
+% \begin{frame}
+% \frametitle{MLE}
+% <<plot_MLE_2, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "MLE"))
+% p = p + geom_line(data = subset(df.pest.low, Estimate == "MLE"))
+% print(p)
+% @
+% \end{frame}
+% 
+% \begin{frame}
+% \frametitle{MLE}
+% <<plot_MLE_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "MLE" & n > 240 & n < 320))
+% p = p + geom_line(data = subset(df.pest.low, Estimate == "MLE" & n > 240 & n < 320))
+% print(p)
+% @
+% \end{frame}
+
+% \subsection{Laplace's Law of Succession.}
+% 
+% \begin{frame}
+% \frametitle{Laplace's Law of Succession.}
+% <<plot_Laplace_1, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "Laplace"))
+% print(p)
+% @
+% \end{frame}
+% 
+% \begin{frame}
+% \frametitle{Laplace's Law of Succession.}
+% <<plot_Laplace_2, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "Laplace"))
+% p = p + geom_line(data = subset(df.pest.low, Estimate == "Laplace"))
+% print(p)
+% @
+% \end{frame}
+% 
+% \begin{frame}
+% \frametitle{Laplace's Law of Succession.}
+% <<plot_Laplace_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "Laplace" & n > 240 & n < 480))
+% p = p + geom_line(data = subset(df.pest.low, Estimate == "Laplace" & n > 240 & n < 480))
+% print(p)
+% @
+% \end{frame}
+
+
+
+\subsection{Jeffreys}
+
+\begin{frame}
+\frametitle{Jeffreys Point Estimate}
+<<plot_Jeffreys_1, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = pest_plot(subset(df.pest, Estimate == "Jeffreys"))
+print(p)
+@
+\end{frame}
+
+\begin{frame}
+\frametitle{Jeffreys Point Estimate}
+<<plot_Jeffreys_2, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = pest_plot(subset(df.pest, Estimate == "Jeffreys"))
+p = p + geom_line(data = subset(df.pest.low, Estimate == "Jeffreys"))
+print(p)
+@
+\end{frame}
+
+\begin{frame}
+\frametitle{Jeffreys Point Estimate}
+<<plot_Jeffreys_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = pest_plot(subset(df.pest, Estimate == "Jeffreys" & n > 140 & n < 380))
+p = p + geom_line(data = subset(df.pest.low, Estimate == "Jeffreys" & n > 140 & n < 380))
+print(p)
+@
+\end{frame}
+
+\begin{frame}
+\frametitle{Jeffreys Point Estimate}
+<<plot_Jeffreys_4, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = pest_plot(subset(df.pest, Estimate == "Jeffreys" & n > 140 & n < 380))
+p = p + geom_line(data = subset(df.pest.low, Estimate == "Jeffreys" & n > 140 & n < 380))
+
+df.sub = subset(df.pest.low, Estimate == "Jeffreys")
+df.sub = df.sub[order(df.sub$n), ]
+i = which(df.sub$Probability > 0.9)[1]
+u = df.sub[i, ]
+l = df.sub[i - 1, ]
+t = (0.9 - l$Probability)/(u$Probability - l$Probability)
+n_est = ceiling(l$n + (u$n - l$n)*t)
+
+p = p + geom_point(data = rbind(subset(df.pest, Estimate == "Jeffreys" & (n == min_n(df.pest, "Jeffreys") | n == max_n(df.pest.low, "Jeffreys"))), data.frame(n = n_est, Estimate = "Jeffreys", Probability = (l$Probability + (u$Probability - l$Probability)*(n_est - l$n)/(u$n - l$n)))), size = 3, colour = 'blue')
+print(p)
+@
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Jeffreys Point Estimate}
+
+These three different approaches each give us a sample size estimate to varying degrees of conservativeness:
+
+\begin{center}
+  \begin{tabular}{ccc}
+    First & Strict Min & Interpolation \\
+    \Sexpr{min_n(df.pest, "Jeffreys")} & \Sexpr{max_n(df.pest.low, "Jeffreys")} & \Sexpr{interp_n(df.pest.low, "Jeffreys")} \\
+  \end{tabular}
+\end{center}
+
+\end{frame}
+
+
+
+
+% \begin{frame}
+% \frametitle{Wilson}
+% <<plot_Wilson_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "Wilson" & n > 340 & n < 580))
+% p = p + geom_line(data = subset(df.pest.low, Estimate == "Wilson" & n > 340 & n < 580))
+% print(p)
+% @
+% \end{frame}
+% 
+% \begin{frame}
+% \frametitle{Bayes}
+% <<plot_Bayes_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.pest, Estimate == "Bayes" & n > 340 & n < 580))
+% p = p + geom_line(data = subset(df.pest.low, Estimate == "Bayes" & n > 340 & n < 580))
+% print(p)
+% @
+% \end{frame}
+
+
+
+
+
+\section{Confidence Interval}
+
+
+
+\begin{frame}
+\frametitle{Clopper-Pearson Exact}
+<<plot_Exact_1, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = conf_plot(subset(df.conf, Estimate == "Exact"))
+print(p)
+@
+\end{frame}
+
+\begin{frame}
+\frametitle{Clopper-Pearson Exact}
+<<plot_Exact_2, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = pest_plot(subset(df.conf, Estimate == "Exact"))
+p = p + geom_line(data = subset(df.conf.low, Estimate == "Exact"))
+print(p)
+@
+\end{frame}
+
+\begin{frame}
+\frametitle{Clopper-Pearson Exact}
+<<plot_Exact_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = conf_plot(subset(df.conf, Estimate == "Exact" & n > 240 & n < 380))
+p = p + geom_line(data = subset(df.conf.low, Estimate == "Exact" & n > 240 & n < 380))
+print(p)
+@
+\end{frame}
+
+\begin{frame}
+\frametitle{Clopper-Pearson Exact}
+<<plot_Exact_4, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+p = conf_plot(subset(df.conf, Estimate == "Exact" & n > 240 & n < 380))
+p = p + geom_line(data = subset(df.conf.low, Estimate == "Exact" & n > 240 & n < 380))
+
+df.sub = subset(df.conf.low, Estimate == "Exact")
+df.sub = df.sub[order(df.sub$n), ]
+i = which(df.sub$Probability > 0.9)[1]
+u = df.sub[i, ]
+l = df.sub[i - 1, ]
+t = (0.9 - l$Probability)/(u$Probability - l$Probability)
+n_est = ceiling(l$n + (u$n - l$n)*t)
+
+p = p + geom_point(data = rbind(subset(df.conf, Estimate == "Exact" & (n == min_n(df.conf, "Exact") | n == max_n(df.conf.low, "Exact"))), data.frame(n = n_est, Estimate = "Exact", Probability = (l$Probability + (u$Probability - l$Probability)*(n_est - l$n)/(u$n - l$n)))), size = 3, colour = 'blue')
+print(p)
+@
+\end{frame}
+
+
+
+
+% \begin{frame}
+% \frametitle{Adjusted Wald}
+% <<plot_adjWald_1, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = conf_plot(subset(df.conf, Estimate == "adjWald"))
+% print(p)
+% @
+% \end{frame}
+% 
+% \begin{frame}
+% \frametitle{Adjusted Wald}
+% <<plot_adjWald_2, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = pest_plot(subset(df.conf, Estimate == "adjWald"))
+% p = p + geom_line(data = subset(df.conf.low, Estimate == "adjWald"))
+% print(p)
+% @
+% \end{frame}
+% 
+% \begin{frame}
+% \frametitle{Adjusted Wald}
+% <<plot_adjWald_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+% p = conf_plot(subset(df.conf, Estimate == "adjWald" & n > 240 & n < 480))
+% p = p + geom_line(data = subset(df.conf.low, Estimate == "adjWald" & n > 240 & n < 480))
+% print(p)
+% @
+% \end{frame}
+
+
+
+
+
+
+
+
+\section{Discussion}
+
+
+\begin{frame}[fragile]
+\frametitle{Sample Size Reccomendation}
+
+The sample size estimates for the point estimate criteria were:
+
+\begin{center}
+  \begin{tabular}{ccc}
+    First & Strict Min & Interpolation \\
+    \Sexpr{min_n(df.pest, "Jeffreys")} & \Sexpr{max_n(df.pest.low, "Jeffreys")} & \Sexpr{interp_n(df.pest.low, "Jeffreys")} \\
+  \end{tabular}
+\end{center}
+
+and the equivalent estimates for the confidence interval criteria are:
+
+\begin{center}
+  \begin{tabular}{ccc}
+    First & Strict Min & Interpolation \\
+    \Sexpr{min_n(df.conf, "Exact")} & \Sexpr{max_n(df.conf.low, "Exact")} & \Sexpr{interp_n(df.conf.low, "Exact")} \\
+  \end{tabular}
+\end{center}
+
+Based on these calculations, the most conservative estimate would be $n = 343$, although I would still consider $n = 325$ quite reasonable and still quite conservative.
+
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Assumptions}
+  
+  \begin{itemize}
+    \item Results will be distributed according to a Binomial distribution.
+    \item Cannot use prior knowledge about the sensitivity to inform our calculations.
+  \end{itemize}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Additional Considerations}
+  
+  \begin{itemize}
+    \item As is, these criteria could be manipulated:
+      \begin{itemize}
+        \item There is no criteria requiring a certain level of specificity.
+        \item There is no criteria that prior knowledge cannot be used in calculation of confidence intervals and point estimates.
+      \end{itemize}
+    \item Knowledge about the cost per sample, and the consequences of failing to meet the criteria, could be used to optimise the choice of sample size.
+  \end{itemize}
+  
+\end{frame}
+
+\begin{frame}
+{\Huge Questions?}
+\end{frame}
+
+
+
+\section{Appendices}
+
+
+\subsection{Comments and other Point Estimates}
+
+\begin{frame}
+  \frametitle{Other Point Estimates}
+  
+  There are a number of different methods for point estimation:
+  \begin{itemize}
+    \item MLE: $\hat{p} = \frac{x}{n}$,
+    \item Jeffreys: $\hat{p} = \frac{x + 0.5}{n + 1}$,
+    \item Laplace: $\hat{p} = \frac{x + 1}{n + 2}$,
+    \item Bayes: $\hat{p} = \frac{x + 2}{n + 4}$,
+    \item Wilson: $\hat{p} = \frac{x + \frac{z^2}{2}}{n + z^2}$ (\cite{Wilson1927}),
+    % Note: $z$ is the critical point from the standard normal distribution.
+  \end{itemize}
+  and more. \cite{Chew1971} offer a good review of point estimates for a binomial proportion.
+  
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Point Estimate Summary}
+\begin{center}
+  \begin{tabular}{lccc}
+              & First & Strict Min & Interpolation \\
+    MLE       & \Sexpr{min_n(df.pest, "MLE")} & \Sexpr{max_n(df.pest.low, "MLE")} & \Sexpr{interp_n(df.pest.low, "MLE")} \\
+    Jeffreys  & \Sexpr{min_n(df.pest, "Jeffreys")} & \Sexpr{max_n(df.pest.low, "Jeffreys")} & \Sexpr{interp_n(df.pest.low, "Jeffreys")} \\
+    Laplace   & \Sexpr{min_n(df.pest, "Laplace")} & \Sexpr{max_n(df.pest.low, "Laplace")} & \Sexpr{interp_n(df.pest.low, "Laplace")} \\
+    Wilson    & \Sexpr{min_n(df.pest, "Wilson")} & \Sexpr{max_n(df.pest.low, "Wilson")} & \Sexpr{interp_n(df.pest.low, "Wilson")} \\
+    Bayes     & \Sexpr{min_n(df.pest, "Bayes")} & \Sexpr{max_n(df.pest.low, "Bayes")} & \Sexpr{interp_n(df.pest.low, "Bayes")} \\
+  \end{tabular}
+\end{center}
+\end{frame}
+
+
+\subsection{Confidence Intervals}
+
+\begin{frame}
+  \frametitle{Confidence Intervals}
+  
+  There are many methods for confidence interval estimation as well, including:
+  \begin{itemize}
+    \item Exact (\cite{Clopper1934})
+    \item Wilson Score (\cite{Wilson1927})
+    \item Continuity-Corrected Wilson Score
+    \item Wald
+    \item Adjusted Wald (\cite{Agresti1998})
+    \item Jeffreys
+  \end{itemize}
+  and more. \cite{Agresti1998} offer a good review of interval estimation methods for a binomial proportion.
+  
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Confidence Interval Summary}
+\begin{center}
+  \begin{tabular}{lccc}
+              & First & Strict Min & Interpolation \\
+    Exact     & \Sexpr{min_n(df.conf, "Exact")} & \Sexpr{max_n(df.conf.low, "Exact")} & \Sexpr{interp_n(df.conf.low, "Exact")} \\
+    Wilson    & \Sexpr{min_n(df.conf, "Wilson")} & \Sexpr{max_n(df.conf.low, "Wilson")} & \Sexpr{interp_n(df.conf.low, "Wilson")} \\
+    cWilson   & \Sexpr{min_n(df.conf, "cWilson")} & \Sexpr{max_n(df.conf.low, "cWilson")} & \Sexpr{interp_n(df.conf.low, "cWilson")} \\
+    Agresti-Coull   & \Sexpr{min_n(df.conf, "Agresti-Coull")} & \Sexpr{max_n(df.conf.low, "Agresti-Coull")} & \Sexpr{interp_n(df.conf.low, "Agresti-Coull")} \\
+    Wald      & \Sexpr{min_n(df.conf, "Wald")} & \Sexpr{max_n(df.conf.low, "Wald")} & \Sexpr{interp_n(df.conf.low, "Wald")} \\
+    adjWald   & \Sexpr{min_n(df.conf, "adjWald")} & \Sexpr{max_n(df.conf.low, "adjWald")} & \Sexpr{interp_n(df.conf.low, "adjWald")} \\
+    Jeffreys  & \Sexpr{min_n(df.conf, "Jeffreys")} & \Sexpr{max_n(df.conf.low, "Jeffreys")} & \Sexpr{interp_n(df.conf.low, "Jeffreys")} \\
+  \end{tabular}
+\end{center}
+\end{frame}
+
+
+
+\begin{frame}{Bibliography}
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{frame}
+
+
+
+\end{document}
