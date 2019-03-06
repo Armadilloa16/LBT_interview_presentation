@@ -67,7 +67,7 @@
 
 The way I approached this was to:
 \begin{itemize}
-  \item Choose a method for calculating the point-estimate $\hat{p}$.
+  \item Choose a method for calculating the point-estimate $\hat{p}$. 
   \item For all $n$ between 1 and 1000:
   \begin{itemize}
     \item Calculate $\hat{p}$ for every possible outcome $x$ between $0$ and $n$.
@@ -75,6 +75,18 @@ The way I approached this was to:
   \end{itemize}
   \item Plot $n$ against the probability of satisfying the criteria $\hat{p} > 0.98$ to find the point at which the sample size is large enough that this probability is $> 90\%$. 
 \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Jeffreys Point Estimate}
+I'll use the Jeffreys estimate:
+
+\begin{equation*}
+  \hat{p} = \frac{x + 0.5}{n + 1}
+\end{equation*}
+
+Which is the mean of the posterior distribution when a Jeffreys prior is used. It is also a compromise between the MLE and Laplace's Law of Succession (which is the mean of the posterior when using a uniform prior).
 
 \end{frame}
 
@@ -234,7 +246,17 @@ These three different approaches each give us a sample size estimate to varying 
 
 \section{Confidence Interval}
 
+\begin{frame}
+\frametitle{Clopper-Pearson Exact}
 
+I'll use the Clopper-Pearson Exact confidence interval, which has lower bound $p_0$ as the solution to
+
+\begin{equation*}
+\sum_{k = x}^{n}{\binom{n}{k}p_0^k(1-p_0)^{n-k}} = \alpha / 2
+\end{equation*}
+
+where $\alpha$ is the required significance level, in this case $0.05$. This lower bound can neatly be calculated as the $\alpha/2$ quantile of a beta distribution with shape parameters $x$ and $n - x + 1$ (\cite{Agresti1998}).
+\end{frame}
 
 \begin{frame}
 \frametitle{Clopper-Pearson Exact}
