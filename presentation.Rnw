@@ -3,7 +3,7 @@
 
 \usepackage{amsmath}
 \usepackage{natbib}
-
+\usepackage{hyperref}
 
 
 \title{Sample Size Estimation}
@@ -518,6 +518,15 @@ Based on these calculations, the most conservative estimate would be $n = 343$, 
     Jeffreys  & \Sexpr{min_n(df.conf, "Jeffreys")} & \Sexpr{max_n(df.conf.low, "Jeffreys")} & \Sexpr{interp_n(df.conf.low, "Jeffreys")} \\
   \end{tabular}
 \end{center}
+\end{frame}
+
+\subsection{Colophon}
+
+\begin{frame}
+\frametitle{Colophon}
+
+These slides where written using \LaTeX in \href{http://www.rstudio.com/ide/}{Rstudio}. \href{http://yihui.name/knitr/}{knitr} was used to embed the R code that performed the analysis and generated the plots for this presentation. The complete source is available \href{https://github.com/Armadilloa16/LBT\_interview\_presentation}{my github}. This colophon was inspired by that in the book \href{http://r-pkgs.had.co.nz/intro.html\#intro-colophon}{R packages} by Hadley Wickham.
+
 \end{frame}
 
 
