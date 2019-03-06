@@ -45,10 +45,6 @@
   
 \end{frame}
 
-
-
-\section{Point Estimate}
-
 \begin{frame}
   \frametitle{Notation}
   
@@ -67,16 +63,16 @@
 
 The way I approached this was to:
 \begin{itemize}
-  \item Choose a method for calculating the point-estimate $\hat{p}$. 
-  \item For all $n$ between 1 and 1000:
-  \begin{itemize}
-    \item Calculate $\hat{p}$ for every possible outcome $x$ between $0$ and $n$.
-    \item For those that produce $\hat{p} > 0.98$, calculate and sum their binomial probabilities (assuming the true sensitivity is $0.99$).
-  \end{itemize}
-  \item Plot $n$ against the probability of satisfying the criteria $\hat{p} > 0.98$ to find the point at which the sample size is large enough that this probability is $> 90\%$. 
+  \item Choose a method for calculating the point-estimate $\hat{p}$ from the number of positive outcomes $x$. 
+  \item For each possible sample size $n$, calculate the probability that the criteria $\hat{p} > 0.98$ is satisfied.
+  \item Plot $n$ against the probability of satisfying the criteria $\hat{p} > 0.98$ to find the point at which the sample size is large enough that this probability is $> 90\%$. There are a few ways to do this, which I will show. 
 \end{itemize}
 
 \end{frame}
+
+
+
+\section{Point Estimate}
 
 \begin{frame}
 \frametitle{Jeffreys Point Estimate}
@@ -144,9 +140,6 @@ Which is the mean of the posterior distribution when a Jeffreys prior is used. I
 % @
 % \end{frame}
 
-
-
-\subsection{Jeffreys}
 
 \begin{frame}
 \frametitle{Jeffreys Point Estimate}
@@ -247,7 +240,7 @@ These three different approaches each give us a sample size estimate to varying 
 \section{Confidence Interval}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 
 I'll use the Clopper-Pearson Exact confidence interval, which has lower bound $p_0$ as the solution to
 
@@ -259,7 +252,7 @@ where $\alpha$ is the required significance level, in this case $0.05$. This low
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
 
@@ -273,7 +266,7 @@ where $\alpha$ is the required significance level, in this case $0.05$. This low
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
 
@@ -287,7 +280,7 @@ where $\alpha$ is the required significance level, in this case $0.05$. This low
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
 
@@ -301,7 +294,7 @@ where $\alpha$ is the required significance level, in this case $0.05$. This low
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
 
@@ -446,6 +439,19 @@ Based on these calculations, the most conservative estimate would be $n = 343$, 
 \end{center}
 \end{frame}
 
+\begin{frame}
+\frametitle{Point Estimate Summary}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+
+{\centering \includegraphics[width=\linewidth]{figure/pest_summary-1} 
+
+}
+
+
+
+\end{knitrout}
+\end{frame}
 
 \subsection{Confidence Intervals}
 
@@ -481,6 +487,23 @@ Based on these calculations, the most conservative estimate would be $n = 343$, 
   \end{tabular}
 \end{center}
 \end{frame}
+
+\begin{frame}
+\frametitle{Confidence Interval Summary}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+
+{\centering \includegraphics[width=\linewidth]{figure/conf_summary-1} 
+
+}
+
+
+
+\end{knitrout}
+\end{frame}
+
+
+
 
 \subsection{Colophon}
 

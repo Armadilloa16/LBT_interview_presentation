@@ -127,10 +127,6 @@ max_n = function(df.low, est){
   
 \end{frame}
 
-
-
-\section{Point Estimate}
-
 \begin{frame}
   \frametitle{Notation}
   
@@ -149,16 +145,16 @@ max_n = function(df.low, est){
 
 The way I approached this was to:
 \begin{itemize}
-  \item Choose a method for calculating the point-estimate $\hat{p}$. 
-  \item For all $n$ between 1 and 1000:
-  \begin{itemize}
-    \item Calculate $\hat{p}$ for every possible outcome $x$ between $0$ and $n$.
-    \item For those that produce $\hat{p} > 0.98$, calculate and sum their binomial probabilities (assuming the true sensitivity is $0.99$).
-  \end{itemize}
-  \item Plot $n$ against the probability of satisfying the criteria $\hat{p} > 0.98$ to find the point at which the sample size is large enough that this probability is $> 90\%$. 
+  \item Choose a method for calculating the point-estimate $\hat{p}$ from the number of positive outcomes $x$. 
+  \item For each possible sample size $n$, calculate the probability that the criteria $\hat{p} > 0.98$ is satisfied.
+  \item Plot $n$ against the probability of satisfying the criteria $\hat{p} > 0.98$ to find the point at which the sample size is large enough that this probability is $> 90\%$. There are a few ways to do this, which I will show. 
 \end{itemize}
 
 \end{frame}
+
+
+
+\section{Point Estimate}
 
 \begin{frame}
 \frametitle{Jeffreys Point Estimate}
@@ -226,9 +222,6 @@ Which is the mean of the posterior distribution when a Jeffreys prior is used. I
 % @
 % \end{frame}
 
-
-
-\subsection{Jeffreys}
 
 \begin{frame}
 \frametitle{Jeffreys Point Estimate}
@@ -318,7 +311,7 @@ These three different approaches each give us a sample size estimate to varying 
 \section{Confidence Interval}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 
 I'll use the Clopper-Pearson Exact confidence interval, which has lower bound $p_0$ as the solution to
 
@@ -330,7 +323,7 @@ where $\alpha$ is the required significance level, in this case $0.05$. This low
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 <<plot_Exact_1, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
 p = conf_plot(subset(df.conf, Estimate == "Exact"))
 print(p)
@@ -338,7 +331,7 @@ print(p)
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 <<plot_Exact_2, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
 p = pest_plot(subset(df.conf, Estimate == "Exact"))
 p = p + geom_line(data = subset(df.conf.low, Estimate == "Exact"))
@@ -347,7 +340,7 @@ print(p)
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 <<plot_Exact_3, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
 p = conf_plot(subset(df.conf, Estimate == "Exact" & n > 240 & n < 380))
 p = p + geom_line(data = subset(df.conf.low, Estimate == "Exact" & n > 240 & n < 380))
@@ -356,7 +349,7 @@ print(p)
 \end{frame}
 
 \begin{frame}
-\frametitle{Clopper-Pearson Exact}
+\frametitle{Clopper-Pearson Exact Interval}
 <<plot_Exact_4, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
 p = conf_plot(subset(df.conf, Estimate == "Exact" & n > 240 & n < 380))
 p = p + geom_line(data = subset(df.conf.low, Estimate == "Exact" & n > 240 & n < 380))
@@ -506,6 +499,19 @@ Based on these calculations, the most conservative estimate would be $n = 343$, 
 \end{center}
 \end{frame}
 
+\begin{frame}
+\frametitle{Point Estimate Summary}
+<<pest_summary, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+df.pest.low$Estimate = factor(as.character(df.pest.low$Estimate), levels = c("MLE", "Jeffreys", "Laplace", "Wilson", "Bayes"))
+p = ggplot(df.pest.low, aes(x = n, y = Probability, colour = Estimate, group = Estimate))
+p = p + geom_point(alpha=0.4)
+p = p + geom_line()
+p = p + geom_hline(aes(yintercept=0.9))
+p = p + xlab("Sample Size")
+p = p + ylab("Probability that Point Estimate is > 0.98")
+print(p)
+@
+\end{frame}
 
 \subsection{Confidence Intervals}
 
@@ -541,6 +547,23 @@ Based on these calculations, the most conservative estimate would be $n = 343$, 
   \end{tabular}
 \end{center}
 \end{frame}
+
+\begin{frame}
+\frametitle{Confidence Interval Summary}
+<<conf_summary, dependson=c('plotting', 'analysis'), fig.width=4.5, fig.height=3, out.width="\\linewidth">>=
+df.conf.low$Estimate = factor(as.character(df.conf.low$Estimate), levels = c("Wald", "Jeffreys", "Exact", "Wilson", "cWilson", "adjWald", "Agresti-Coull"))
+p = ggplot(df.conf.low, aes(x = n, y = Probability, colour = Estimate, group = Estimate))
+p = p + geom_point(alpha=0.4)
+p = p + geom_line()
+p = p + geom_hline(aes(yintercept=0.9))
+p = p + xlab("Sample Size")
+p = p + ylab("Probability that Lower Bound is > 0.96")
+print(p)
+@
+\end{frame}
+
+
+
 
 \subsection{Colophon}
 
